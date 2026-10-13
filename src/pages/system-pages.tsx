@@ -123,7 +123,16 @@ function RowDeleteConfirm({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction disabled={pending} onClick={onConfirm} variant="destructive">
+          <AlertDialogAction
+            disabled={pending}
+            onClick={event => {
+              // 阻止 Radix 点击后自动关闭：pending 期间保持弹框打开并显示 loading，
+              // 成功后由 onConfirm 手动关闭；失败时弹框保持打开，可重试或取消。
+              event.preventDefault()
+              onConfirm()
+            }}
+            variant="destructive"
+          >
             {pending ? <Loader2 className="size-4 animate-spin" /> : null}
             确认删除
           </AlertDialogAction>
@@ -381,7 +390,12 @@ export function UsersPage() {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget) {
-            void removeMutation.mutateAsync(deleteTarget.id).then(() => setDeleteTarget(null))
+            removeMutation
+              .mutateAsync(deleteTarget.id)
+              .then(() => setDeleteTarget(null))
+              .catch(() => {
+                // 删除失败时保持弹框打开（可重试/取消），错误由 MutationCache 全局 toast 提示
+              })
           }
         }}
         open={deleteTarget !== null}
@@ -617,7 +631,12 @@ export function RolesPage() {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget) {
-            void removeMutation.mutateAsync(deleteTarget.code).then(() => setDeleteTarget(null))
+            removeMutation
+              .mutateAsync(deleteTarget.code)
+              .then(() => setDeleteTarget(null))
+              .catch(() => {
+                // 删除失败时保持弹框打开（可重试/取消），错误由 MutationCache 全局 toast 提示
+              })
           }
         }}
         open={deleteTarget !== null}
